@@ -3,7 +3,7 @@ hostname: ${hostname}
 manage_etc_hosts: true
 
 users:
-  - name: admin
+  - name: ladmin
     groups: [sudo, adm]
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
@@ -24,5 +24,4 @@ packages:
 
 runcmd:
   - systemctl enable --now qemu-guest-agent
-  - systemctl enable --now chrony
   - systemctl enable --now fail2ban
