@@ -51,6 +51,7 @@ resource "proxmox_vm_qemu" "vms" {
   nameserver = "${each.value.ci_dns1} ${each.value.ci_dns2}"
   ciuser     = "ladmin"
   sshkeys    = var.ssh_public_key
+  cipassword = var.vm_password 
 
   # ── Réseau ───────────────────────────────────────────────
   network {

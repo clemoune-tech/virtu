@@ -71,3 +71,10 @@ variable "proxmox_ssh_private_key_path" {
   type        = string
   default     = "~/.ssh/id_ed25519"
 }
+
+variable "vm_password" {
+  description = "Mot de passe des VMs (lab uniquement)"
+  type        = string
+  sensitive   = true
+  default     = "ladmin"
+}

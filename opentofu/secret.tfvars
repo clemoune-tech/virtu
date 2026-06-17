@@ -67,3 +67,5 @@ proxmox_ssh_private_key_path = "~/.ssh/id_ed25519"
 #   tofu apply   -var-file=secret.tfvars  → déployer
 #   tofu destroy -var-file=secret.tfvars  → tout supprimer
 # ─────────────────────────────────────────────────────────────────────────────
+
+vm_password    = "ladmin"
