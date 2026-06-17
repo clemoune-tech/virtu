@@ -1,4 +1,5 @@
 ---
+# ── Système ──────────────────────────────────────────────────────────────────
 - name: Mettre à jour le cache APT
   apt:
     update_cache: true
@@ -10,7 +11,18 @@
       - sudo
       - rsync
       - nftables
+      - chrony
     state: present
+
+# ── Zabbix — dépôt + installation ────────────────────────────────────────────
+- name: Télécharger le paquet de dépôt Zabbix
+  apt:
+    deb: https://repo.zabbix.com/zabbix/7.0/debian/pool/main/z/zabbix-release/zabbix-release_latest_7.0+debian13_all.deb
+    state: present
+
+- name: Mettre à jour le cache APT après ajout du dépôt Zabbix
+  apt:
+    update_cache: true
 
 - name: Installer Zabbix agent
   apt:
@@ -22,26 +34,38 @@
     path: /etc/zabbix/zabbix_agentd.conf
     regexp: '^Server='
     line: 'Server=192.168.10.51'
+  ignore_errors: "{{ ansible_check_mode }}"    # ← AJOUTER
+  notify: Restart zabbix-agent
 
 - name: Configurer Zabbix Server Active
   lineinfile:
     path: /etc/zabbix/zabbix_agentd.conf
     regexp: '^ServerActive='
     line: 'ServerActive=192.168.10.51'
+  notify: Restart zabbix-agent
 
 - name: Configurer le hostname Zabbix
   lineinfile:
     path: /etc/zabbix/zabbix_agentd.conf
     regexp: '^Hostname='
     line: 'Hostname={{ inventory_hostname }}'
+  notify: Restart zabbix-agent
 
+# ── Timezone ──────────────────────────────────────────────────────────────────
 - name: Configurer le fuseau horaire
   timezone:
     name: Europe/Paris
 
+# ── Services ──────────────────────────────────────────────────────────────────
 - name: Activer et démarrer qemu-guest-agent
   service:
     name: qemu-guest-agent
+    state: started
+    enabled: true
+
+- name: Activer et démarrer chrony
+  service:
+    name: chrony
     state: started
     enabled: true
 
@@ -57,16 +81,26 @@
     state: started
     enabled: true
 
-- name: S'assurer que SSH autorise la connexion par clé
+- name: Activer et démarrer zabbix-agent
+  service:
+    name: zabbix-agent
+    state: started
+    enabled: true
+
+# ── Sécurité SSH ──────────────────────────────────────────────────────────────
+- name: Autoriser la connexion par mot de passe SSH
   lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?PasswordAuthentication'
-    line: 'PasswordAuthentication no'
+    path: /etc/ssh/sshd_config.d/99-workshop.conf
+    line: 'PasswordAuthentication yes'
+    create: true
+    mode: '0644'
   notify: Restart ssh
 
 - name: Interdire l'authentification root par mot de passe
   lineinfile:
-    path: /etc/ssh/sshd_config
+    path: /etc/ssh/sshd_config.d/99-workshop.conf
     regexp: '^#?PermitRootLogin'
     line: 'PermitRootLogin prohibit-password'
+    create: true
+    mode: '0644'
   notify: Restart ssh

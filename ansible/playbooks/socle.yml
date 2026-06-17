@@ -2,6 +2,5 @@
 - name: Appliquer le socle commun
   hosts: all
   become: true
-
   roles:
     - socle_commun
