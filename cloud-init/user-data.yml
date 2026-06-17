@@ -19,6 +19,10 @@ packages:
   - curl
   - sudo
   - nftables
+  - fail2ban
+  - rsync
 
 runcmd:
   - systemctl enable --now qemu-guest-agent
+  - systemctl enable --now chrony
+  - systemctl enable --now fail2ban
