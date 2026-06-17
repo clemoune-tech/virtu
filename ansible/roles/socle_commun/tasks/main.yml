@@ -8,17 +8,8 @@
   apt:
     name:
       - sudo
-      - vim
-      - curl
-      - wget
       - rsync
-      - fail2ban
       - nftables
-      - qemu-guest-agent
-      - acl
-      - unzip
-      - htop
-      - net-tools
     state: present
 
 - name: Configurer le fuseau horaire
