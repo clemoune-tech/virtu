@@ -1,14 +1,14 @@
-# ─────────────────────────────────────────────────────────────
-# Déploiement des VMs — NE PAS MODIFIER CE FICHIER
-# Les VMs sont définies dans vms.tf
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# DÉPLOIEMENT — NE PAS MODIFIER CE FICHIER
+# Toutes les valeurs sont dans vms.tf
+# ─────────────────────────────────────────────────────────────────────────────
 
 resource "proxmox_vm_qemu" "vms" {
   for_each = local.vms
 
   # ── Identité ─────────────────────────────────────────────
   name        = each.key
-  desc        = each.value.description
+  description = each.value.description
   target_node = each.value.node
   vmid        = each.value.vmid
 
@@ -17,8 +17,8 @@ resource "proxmox_vm_qemu" "vms" {
   full_clone = true
 
   # ── Comportement ─────────────────────────────────────────
-  agent  = 1
-  onboot = each.value.onboot
+  agent              = 1
+  start_at_node_boot = each.value.onboot
 
   # ── Ressources ───────────────────────────────────────────
   memory = each.value.memory
@@ -40,6 +40,17 @@ resource "proxmox_vm_qemu" "vms" {
     storage  = each.value.storage
     iothread = true
   }
+ disk {
+    slot    = "ide2"
+    type    = "cloudinit"
+    storage = each.value.storage
+  }
+  # ── Cloud-init natif ─────────────────────────────────────
+  # Pas de snippets, pas de dépendance au nœud local
+  ipconfig0  = "ip=${each.value.ci_ip_cidr},gw=${each.value.ci_gateway}"
+  nameserver = "${each.value.ci_dns1} ${each.value.ci_dns2}"
+  ciuser     = "ladmin"
+  sshkeys    = var.ssh_public_key
 
   # ── Réseau ───────────────────────────────────────────────
   network {
@@ -49,14 +60,10 @@ resource "proxmox_vm_qemu" "vms" {
     tag    = each.value.vlan
   }
 
-  # ── Protection contre les faux positifs ──────────────────
-  # Empêche OpenTofu de vouloir recréer une VM si Proxmox
-  # ou cloud-init modifie légèrement la config après création
   lifecycle {
     ignore_changes = [
-      disk,
       network,
-      desc,
+      description,disk,
     ]
   }
 }

@@ -6,6 +6,7 @@ output "vms_deployees" {
       nom  = vm.name
       nœud = vm.target_node
       ram  = "${vm.memory} MB"
+      ip   = vm.default_ipv4_address   # ← fournie par le qemu-guest-agent
     }
   }
 }

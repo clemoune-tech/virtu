@@ -1,17 +1,19 @@
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # DÉFINITION DES VMs
 #
 # Pour ajouter une VM  → copier un bloc dans vm_definitions
-# Pour supprimer une VM → supprimer le bloc correspondant
-# Pour modifier une VM  → changer les valeurs dans son bloc
+# Pour modifier une VM → changer les valeurs dans son bloc
+# Pour supprimer une VM → supprimer son bloc
 #
-# Seuls les champs différents des valeurs par défaut sont nécessaires.
-# ─────────────────────────────────────────────────────────────
+# Champs cloud-init obligatoires par VM :
+#   ci_hostname  → nom d'hôte de la VM
+#   ci_ip_cidr   → adresse IP avec masque (ex: 192.168.10.201/24)
+#   ci_gateway   → passerelle du VLAN de la VM
+# ─────────────────────────────────────────────────────────────────────────────
 
 locals {
 
-  # ── Valeurs par défaut communes à toutes les VMs ──────────
-  # Surchargeables VM par VM dans vm_definitions ci-dessous
+  # ── Valeurs par défaut communes ──────────────────────────
   vm_defaults = {
     node      = var.proxmox_node
     storage   = var.default_storage
@@ -19,46 +21,51 @@ locals {
     memory    = 1024
     cores     = 1
     disk_size = "32G"
-    vlan      = 10
     onboot    = true
+    # Cloud-init — réseau
+    nic_name = var.default_nic_name
+    ci_dns1  = var.default_dns1
+    ci_dns2  = var.default_dns2
   }
 
   # ── Définition des VMs ────────────────────────────────────
-  # Ajouter une VM = ajouter un bloc ici
   vm_definitions = {
 
     bastion = {
-      vmid        = 201
+      vmid        = 501
       description = "Bastion — point d'administration — VLAN Management"
       memory      = 1024
       cores       = 1
       vlan        = 10
+      # Cloud-init
+      ci_hostname = "bastion"
+      ci_ip_cidr  = "192.168.10.50/24"
+      ci_gateway  = "192.168.10.1"
     }
 
     web = {
-      vmid        = 202
+      vmid        = 502
       description = "Serveur web — VLAN Services"
       memory      = 2048
-      cores       = 2
-      vlan        = 100
+      cores       = 1
+      vlan        = 10
+      # Cloud-init — adapter à ton adressage VLAN 10
+      ci_hostname = "web"
+      ci_ip_cidr  = "192.168.10.51/24"
+      ci_gateway  = "192.168.10.1"
     }
 
     db = {
-      vmid        = 203
+      vmid        = 503
       description = "Base de données — VLAN Services"
       memory      = 2048
-      cores       = 2
-      vlan        = 100
+      cores       = 1
+      vlan        = 10
+      # Cloud-init — adapter à ton adressage VLAN 10
+      ci_hostname = "db"
+      ci_ip_cidr  = "192.168.10.52/24"
+      ci_gateway  = "192.168.10.1"
     }
-
-    # ── Exemple : ajouter une 4e VM ───────────────────────
-    # monitoring = {
-    #   vmid        = 204
-    #   description = "Serveur de supervision — VLAN Management"
-    #   memory      = 4096
-    #   cores       = 2
-    #   vlan        = 10
-    # }
 
   }
 
