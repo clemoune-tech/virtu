@@ -12,6 +12,29 @@
       - nftables
     state: present
 
+- name: Installer Zabbix agent
+  apt:
+    name: zabbix-agent
+    state: present
+
+- name: Configurer Zabbix Server
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Server='
+    line: 'Server=192.168.10.200'
+
+- name: Configurer Zabbix Server Active
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^ServerActive='
+    line: 'ServerActive=192.168.10.200'
+
+- name: Configurer le hostname Zabbix
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Hostname='
+    line: 'Hostname={{ inventory_hostname }}'
+
 - name: Configurer le fuseau horaire
   timezone:
     name: Europe/Paris
