@@ -1,0 +1,13 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Playbook : configuration du serveur web
+# Cible    : VM web uniquement
+# Rôles    : nginx + zabbix_server
+# Usage    : ansible-playbook playbooks/web.yml
+# ─────────────────────────────────────────────────────────────
+- name: Configurer le serveur web
+  hosts: web
+  become: true
+  roles:
+    - nginx
+    - zabbix_server

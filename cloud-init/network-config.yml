@@ -1,11 +1,11 @@
 version: 2
 ethernets:
-  ens18:
-    dhcp4: false
+  ens18:                       # 2 espaces
+    dhcp4: false               # 4 espaces
     addresses:
-      - ${ip_cidr}
+      - ${ip_cidr}             # 6 espaces
     gateway4: ${gateway}
     nameservers:
-      addresses:
-        - ${dns1}
+      addresses:               # 6 espaces
+        - ${dns1}              # 8 espaces
         - ${dns2}

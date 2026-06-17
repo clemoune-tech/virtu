@@ -1,0 +1,5 @@
+# Valeurs sensibles — ne jamais versionner
+secret.tfvars        ← remplace terraform.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/

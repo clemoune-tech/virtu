@@ -1,0 +1,104 @@
+---
+# ── Base de données MariaDB ───────────────────────────────────────────────────
+- name: Installer MariaDB et dépendances Python
+  apt:
+    name:
+      - mariadb-server
+      - python3-pymysql
+    state: present
+
+- name: Démarrer et activer MariaDB
+  service:
+    name: mariadb
+    state: started
+    enabled: true
+
+- name: Créer la base de données Zabbix
+  community.mysql.mysql_db:
+    name: zabbix
+    encoding: utf8mb4
+    collation: utf8mb4_bin
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Créer l'utilisateur Zabbix
+  community.mysql.mysql_user:
+    name: zabbix
+    password: "zabbix_db_pass"
+    priv: "zabbix.*:ALL"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+# ── Zabbix Server ─────────────────────────────────────────────────────────────
+- name: Installer Zabbix server et frontend
+  apt:
+    name:
+      - zabbix-server-mysql
+      - zabbix-frontend-php
+      - zabbix-apache-conf
+      - zabbix-sql-scripts
+    state: present
+
+- name: Vérifier si le schéma est déjà initialisé
+  stat:
+    path: /var/lib/zabbix/.db_initialized
+  register: db_init
+
+- name: Initialiser le schéma de base de données Zabbix
+  shell: |
+    zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz | \
+    mysql --default-character-set=utf8mb4 -uzabbix -pzabbix_db_pass zabbix
+  when: not db_init.stat.exists
+  register: schema_result
+  failed_when:
+    - schema_result.rc != 0
+    - "'already exists' not in schema_result.stderr"
+  notify: Restart zabbix-server
+  
+- name: Créer le fichier de marquage d'initialisation
+  file:
+    path: /var/lib/zabbix/.db_initialized
+    state: touch
+    mode: '0600'
+  when: not db_init.stat.exists
+
+- name: Créer le fichier de marquage d'initialisation
+  file:
+    path: /var/lib/zabbix/.db_initialized
+    state: touch
+    mode: '0600'
+  when: not db_init.stat.exists
+
+- name: Configurer le mot de passe DB dans zabbix_server.conf
+  lineinfile:
+    path: /etc/zabbix/zabbix_server.conf
+    regexp: '^# DBPassword='
+    line: 'DBPassword=zabbix_db_pass'
+  notify: Restart zabbix-server
+
+# ── Services ──────────────────────────────────────────────────────────────────
+- name: Démarrer et activer Zabbix server
+  service:
+    name: zabbix-server
+    state: started
+    enabled: true
+
+- name: Faire écouter Apache sur le port 8080
+  lineinfile:
+    path: /etc/apache2/ports.conf
+    regexp: '^Listen 80$'
+    line: 'Listen 8080'
+  notify: Restart apache
+
+- name: Mettre à jour le VirtualHost par défaut sur 8080
+  lineinfile:
+    path: /etc/apache2/sites-available/000-default.conf
+    regexp: '^<VirtualHost \*:80>'
+    line: '<VirtualHost *:8080>'
+  notify: Restart apache
+  
+- name: Démarrer et activer Apache (frontend Zabbix)
+  service:
+    name: apache2
+    state: started
+    enabled: true

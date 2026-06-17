@@ -1,0 +1,19 @@
+---
+- name: Installer Nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Déployer la page d'accueil
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+    mode: '0644'
+  notify: Reload nginx
+
+- name: Démarrer et activer Nginx
+  service:
+    name: nginx
+    state: started
+    enabled: true
