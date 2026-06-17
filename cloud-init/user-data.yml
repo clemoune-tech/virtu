@@ -1,5 +1,5 @@
 #cloud-config
-hostname: vm-source
+hostname: ${hostname}
 manage_etc_hosts: true
 
 users:
@@ -8,7 +8,7 @@ users:
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
     ssh_authorized_keys:
-      - ssh-ed25519 AAAA...votre_cle_publique...
+      - ${ssh_public_key}
 
 package_update: true
 package_upgrade: true
