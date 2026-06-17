@@ -1,0 +1,178 @@
+---
+- name: Configuration complète du Bastion (Socle + Spécifique)
+  hosts: bastion
+  become: true
+
+  vars:
+    # ── VARIABLES INFRASTRUCTURE ─────────────────────────────────────────────
+    ip_web: "192.168.10.51"       # À remplacer par l'IP de ton serveur Web
+    ip_db: "192.168.10.52"        # À remplacer par l'IP de ton serveur de Base de Données
+    port_db: 5432                 # Port de ta DB (ex: 5432 PostgreSQL, 3306 MySQL)
+    ip_zabbix_server: "192.168.10.51" # L'IP de ton serveur Zabbix distant
+
+    # ── VOS COMPTES ADMINISTRATEURS (CLÉS SSH) ───────────────────────────────
+    admins:
+      - name: "ladmin"
+        ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... utilisateur1@work"
+
+  handlers:
+    - name: Restart zabbix-agent
+      service:
+        name: zabbix-agent
+        state: restarted
+
+    - name: Restart ssh
+      service:
+        name: ssh
+        state: restarted
+
+  tasks:
+    # ==========================================================================
+    # PARTIE 1 : SOCLE COMMUN (Installation de l'Agent Zabbix)
+    # ==========================================================================
+    - name: [SOCLE] Mettre à jour le cache APT
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: [SOCLE] Installer les paquets de base
+      apt:
+        name:
+          - sudo
+          - rsync
+          - nftables
+          - chrony
+        state: present
+
+    - name: [SOCLE] Télécharger le paquet de dépôt Zabbix
+      apt:
+        deb: https://repo.zabbix.com/zabbix/7.0/debian/pool/main/z/zabbix-release/zabbix-release_latest_7.0+debian13_all.deb
+        state: present
+
+    - name: [SOCLE] Mettre à jour le cache APT après ajout du dépôt Zabbix
+      apt:
+        update_cache: true
+
+    - name: [SOCLE] Installer Zabbix agent
+      apt:
+        name: zabbix-agent
+        state: present
+
+    - name: [SOCLE] Configurer le serveur Zabbix distant (passif)
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^Server='
+        line: "Server={{ ip_zabbix_server }}"
+      ignore_errors: "{{ ansible_check_mode }}"
+      notify: Restart zabbix-agent
+
+    - name: [SOCLE] Configurer le serveur Zabbix distant (actif)
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^ServerActive='
+        line: "ServerActive={{ ip_zabbix_server }}"
+      notify: Restart zabbix-agent
+
+    - name: [SOCLE] Configurer le hostname de l'agent Zabbix
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: '^Hostname='
+        line: 'Hostname={{ inventory_hostname }}'
+      notify: Restart zabbix-agent
+
+    - name: [SOCLE] Configurer le fuseau horaire
+      timezone:
+        name: Europe/Paris
+
+    - name: [SOCLE] Activer et démarrer les services de base
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - qemu-guest-agent
+        - chrony
+        - fail2ban
+        - nftables
+        - zabbix-agent
+
+    # ==========================================================================
+    # PARTIE 2 : CONFIGURATION & SÉCURISATION SSH DU BASTION
+    # ==========================================================================
+   # - name: [SSH] Forcer l'authentification par CLÉ UNIQUEMENT (Pas de mot de passe)
+    #  lineinfile:
+    #    path: /etc/ssh/sshd_config.d/99-workshop.conf
+    #    line: 'PasswordAuthentication no'
+    #    create: true
+    #    mode: '0644'
+    #  notify: Restart ssh
+
+#    - name: [SSH] Interdire complètement l'accès Root sur le Bastion
+#      lineinfile:
+  #      path: /etc/ssh/sshd_config.d/99-workshop.conf
+  #      regexp: '^#?PermitRootLogin'
+  #      line: 'PermitRootLogin no'
+  #      create: true
+   #     mode: '0644'
+  #    notify: Restart ssh
+
+    # ==========================================================================
+    # PARTIE 3 : VÉRIFICATION DES COMPTES ET DES CLÉS
+    # ==========================================================================
+    - name: [COMPTES] Créer le groupe des administrateurs (sysadmins)
+      group:
+        name: sysadmins
+        state: present
+
+    - name: [COMPTES] Créer les comptes utilisateurs des administrateurs
+      user:
+        name: "{{ item.name }}"
+        group: sysadmins
+        shell: /bin/bash
+        state: present
+      loop: "{{ admins }}"
+
+    - name: [COMPTES] Déployer les clés SSH pour les administrateurs
+      authorized_key:
+        user: "{{ item.name }}"
+        state: present
+        key: "{{ item.ssh_key }}"
+      loop: "{{ admins }}"
+
+    # ==========================================================================
+    # PARTIE 4 : OUTILS D'ADMINISTRATION COMPLÉMENTAIRES
+    # ==========================================================================
+    - name: [OUTILS] Installer les outils d'administration et de diagnostic
+      apt:
+        name:
+          - tmux             # Persistance de session
+          - nmap             # Scan de ports réseau
+          - netcat-openbsd   # Test de connectivité (commande nc)
+          - dnsutils         # Résolution de noms (commande dig)
+          - htop             # Monitoring des ressources locales
+          - git              # Gestion des scripts
+        state: present
+
+    # ==========================================================================
+    # PARTIE 5 : VÉRIFICATION DES ACCÈS (WEB, DB, VERS LE SERVEUR ZABBIX)
+    # ==========================================================================
+    - name: [RÉSEAU] Vérifier l'accès au serveur Web (Port 443)
+      wait_for:
+        host: "{{ ip_web }}"
+        port: 80
+        timeout: 5
+      msg: "Le Bastion ne parvient pas à joindre le serveur Web sur le port 443"
+
+    - name: [RÉSEAU] Vérifier l'accès à la Base de Données
+      wait_for:
+        host: "{{ ip_db }}"
+        port: "{{ port_db }}"
+        timeout: 5
+      msg: "Le Bastion ne parvient pas à joindre la base de données sur le port {{ port_db }}"
+
+    - name: [RÉSEAU] Vérifier que le Bastion peut joindre le serveur Zabbix distant (Port 8080)
+      wait_for:
+        host: "{{ ip_zabbix_server }}"
+        port: 8080
+        timeout: 5
+      msg: "Le Bastion ne parvient pas à contacter le serveur Zabbix central sur le port 10051"
