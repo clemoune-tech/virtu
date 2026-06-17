@@ -1,0 +1,58 @@
+---
+- name: Mettre à jour le cache APT
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installer les paquets de base
+  apt:
+    name:
+      - sudo
+      - vim
+      - curl
+      - wget
+      - rsync
+      - fail2ban
+      - nftables
+      - qemu-guest-agent
+      - acl
+      - unzip
+      - htop
+      - net-tools
+    state: present
+
+- name: Configurer le fuseau horaire
+  timezone:
+    name: Europe/Paris
+
+- name: Activer et démarrer qemu-guest-agent
+  service:
+    name: qemu-guest-agent
+    state: started
+    enabled: true
+
+- name: Activer et démarrer fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: true
+
+- name: Activer et démarrer nftables
+  service:
+    name: nftables
+    state: started
+    enabled: true
+
+- name: S'assurer que SSH autorise la connexion par clé
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+  notify: Restart ssh
+
+- name: Interdire l'authentification root par mot de passe
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin prohibit-password'
+  notify: Restart ssh
