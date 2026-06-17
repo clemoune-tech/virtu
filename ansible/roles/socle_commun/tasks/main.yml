@@ -21,13 +21,13 @@
   lineinfile:
     path: /etc/zabbix/zabbix_agentd.conf
     regexp: '^Server='
-    line: 'Server=192.168.10.200'
+    line: 'Server=192.168.10.101'
 
 - name: Configurer Zabbix Server Active
   lineinfile:
     path: /etc/zabbix/zabbix_agentd.conf
     regexp: '^ServerActive='
-    line: 'ServerActive=192.168.10.200'
+    line: 'ServerActive=192.168.10.101'
 
 - name: Configurer le hostname Zabbix
   lineinfile:
