@@ -112,6 +112,7 @@
     host: "{{ bastion_ip_web }}"
     port: 80
     timeout: 5
+  ignore_errors: true
 
 - name: "[RÉSEAU] Vérifier l'accès à la Base de Données"
   wait_for:
@@ -125,6 +126,8 @@
     host: "{{ bastion_zabbix_server }}"
     port: 8080
     timeout: 5
+  ignore_errors: true 
+
     # ==========================================================================
 # PARTIE 6 : CLÉ SSH DU BASTION (pour accéder à web et db)
 # ==========================================================================

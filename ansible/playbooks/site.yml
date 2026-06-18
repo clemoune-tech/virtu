@@ -7,15 +7,11 @@
 
 # ── Étape 1 : Socle commun sur toutes les VMs ─────────────────────────────
 - import_playbook: socle.yml
-
-# ── Étape 2 : Configuration spécifique du bastion ─────────────────────────
-- import_playbook: bastion.yml
-
-# ── Étape 3 : Configuration du serveur web ────────────────────────────────
+# ── Étape 2 : Configuration du serveur web ────────────────────────────────
 - import_playbook: web.yml
-
-# ── Étape 4 : Restriction d'accès SSH sur web et db ───────────────────────
-- import_playbook: bastion_access.yml
-
-# ── Étape 5 : Configuration du serveur de base de données ─────────────────
+# ── Étape 3 : Configuration du serveur de base de données ─────────────────
 - import_playbook: db.yml 
+# ── Étape 4 : Configuration spécifique du bastion ─────────────────────────
+- import_playbook: bastion.yml
+# ── Étape 5 : Restriction d'accès SSH sur web et db ───────────────────────
+- import_playbook: bastion_access.yml 

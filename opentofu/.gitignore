@@ -1,0 +1,6 @@
+# Fichiers sensibles — ne jamais versionner
+secret.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl

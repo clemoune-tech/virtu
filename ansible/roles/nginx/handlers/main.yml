@@ -3,8 +3,8 @@
   service:
     name: nginx
     state: reloaded
-    
-- name: Reload nftables
+
+- name: Restart nftables
   service:
     name: nftables
     state: restarted

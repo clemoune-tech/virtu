@@ -18,4 +18,6 @@ provider "proxmox" {
   # Credentials lus depuis les variables d'environnement :
   #   export PM_API_TOKEN_ID="tofu-user@pve!tofu-token"
   #   export PM_API_TOKEN_SECRET="..."
+  pm_api_token_id     = var.pm_api_token_id
+  pm_api_token_secret = var.pm_api_token_secret
 }

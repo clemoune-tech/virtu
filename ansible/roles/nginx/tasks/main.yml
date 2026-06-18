@@ -1,45 +1,84 @@
 ---
-- name: Installer Nginx
+# ==========================================================================
+# NGINX
+# ==========================================================================
+- name: "[WEB] Installer Nginx"
   apt:
     name: nginx
     state: present
     update_cache: true
 
-- name: Déployer la page d'accueil
+- name: "[WEB] Déployer la page d'accueil"
   template:
     src: index.html.j2
     dest: /var/www/html/index.html
     mode: '0644'
   notify: Reload nginx
 
-- name: Démarrer et activer Nginx
+- name: "[WEB] Démarrer et activer Nginx"
   service:
     name: nginx
     state: started
     enabled: true
+
 # ==========================================================================
-# PHP-FPM, PHP MySQL, PHP CLI
+# PHP
 # ==========================================================================
 - name: "[WEB] Installer PHP-FPM, PHP MySQL et PHP CLI"
   apt:
     name:
-      - php-fpm       # Moteur PHP — travaille avec Nginx pour exécuter le PHP
-      - php-mysql     # Extension DB — permet à PHP de parler à MariaDB
-      - php-cli       # PHP en ligne de commande — scripts, maintenance, cron
+      - php-fpm      # Moteur PHP pour Nginx
+      - php-mysql    # Connexion PHP → MariaDB
+      - php-cli      # PHP en ligne de commande
     state: present
     update_cache: true
 
-- name: "[WEB] Vérifier la version PHP-FPM installée"
-  command: php --version
+- name: "[WEB] Détecter la version PHP installée"
+  shell: php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'
   register: php_version
   changed_when: false
 
-- name: "[WEB] Afficher la version PHP"
-  debug:
-    msg: "{{ php_version.stdout_lines[0] }}"
-
 - name: "[WEB] Démarrer et activer PHP-FPM"
-  shell: |
-    PHP_SERVICE=$(systemctl list-units --type=service | grep php | grep fpm | awk '{print $1}')
-    systemctl enable --now $PHP_SERVICE
-  changed_when: false
+  service:
+    name: "php{{ php_version.stdout }}-fpm"
+    state: started
+    enabled: true
+
+# ==========================================================================
+# NFTABLES — Règles spécifiques au serveur web
+# ==========================================================================
+- name: "[WEB] Configurer nftables pour le serveur web"
+  copy:
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0750'
+    content: |
+      #!/usr/sbin/nft -f
+      flush ruleset
+      table inet filter {
+          chain input {
+              type filter hook input priority filter; policy drop;
+              iif "lo" accept
+              ct state established,related accept
+              ct state invalid drop
+              ip protocol icmp accept
+              ip6 nexthdr ipv6-icmp accept
+              ip saddr 192.168.10.50 tcp dport 22 accept
+              tcp dport { 80, 8080 } accept
+              ip saddr {{ ip_zabbix_server }} tcp dport 10050 accept
+              tcp dport 10051 accept
+          }
+          chain forward {
+              type filter hook forward priority filter; policy drop;
+          }
+          chain output {
+              type filter hook output priority filter; policy accept;
+          }
+      }
+  notify: Restart nftables
+
+- name: "[WEB] Appliquer nftables"
+  service:
+    name: nftables
+    state: restarted

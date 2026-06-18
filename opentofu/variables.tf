@@ -78,3 +78,15 @@ variable "vm_password" {
   sensitive   = true
   default     = "ladmin"
 }
+
+variable "pm_api_token_id" {
+  description = "ID du token API Proxmox"
+  type        = string
+  sensitive   = true
+}
+
+variable "pm_api_token_secret" {
+  description = "Secret du token API Proxmox"
+  type        = string
+  sensitive   = true
+}

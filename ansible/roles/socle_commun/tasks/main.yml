@@ -12,6 +12,10 @@
       - rsync
       - nftables
       - chrony
+      - fail2ban          
+      - qemu-guest-agent  
+      - vim               
+      - curl        
     state: present
 
 # ── Zabbix — dépôt + installation ────────────────────────────────────────────
@@ -119,18 +123,12 @@
       table inet filter {
           chain input {
               type filter hook input priority filter; policy drop;
-              # 1. Trafic local (loopback)
               iif "lo" accept
-              # 2. Trafic déjà établi
               ct state established,related accept
-              # 3. Trafic invalide
               ct state invalid drop
-              # 4. ICMP — diagnostic réseau
               ip protocol icmp accept
               ip6 nexthdr ipv6-icmp accept
-              # 5. SSH
               tcp dport 22 accept
-              # 6. Zabbix agent
               ip saddr {{ ip_zabbix_server }} tcp dport 8080 accept
           }
           chain forward {
@@ -147,47 +145,3 @@
     name: nftables
     state: started
     enabled: true
-    # ── Règles nftables spécifiques au serveur web ────────────────────────────────
-- name: "[WEB] Configurer nftables pour le serveur web"
-  copy:
-    dest: /etc/nftables.conf
-    owner: root
-    group: root
-    mode: '0750'
-    content: |
-      #!/usr/sbin/nft -f
-      flush ruleset
-      table inet filter {
-          chain input {
-              type filter hook input priority filter; policy drop;
-              # Loopback
-              iif "lo" accept
-              # Trafic établi
-              ct state established,related accept
-              # Trafic invalide
-              ct state invalid drop
-              # ICMP
-              ip protocol icmp accept
-              ip6 nexthdr ipv6-icmp accept
-              # SSH — depuis le bastion uniquement
-              ip saddr 192.168.10.50 tcp dport 22 accept
-              # HTTP et Zabbix frontend
-              tcp dport { 80, 8080 } accept
-              # Zabbix agent
-              ip saddr {{ ip_zabbix_server }} tcp dport 10050 accept
-              # Zabbix server
-              tcp dport 10051 accept
-          }
-          chain forward {
-              type filter hook forward priority filter; policy drop;
-          }
-          chain output {
-              type filter hook output priority filter; policy accept;
-          }
-      }
-  notify: Restart nftables
-
-- name: "[WEB] Appliquer les règles nftables"
-  service:
-    name: nftables
-    state: restarted
