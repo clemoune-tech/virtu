@@ -37,6 +37,12 @@ virtu/
 └── cloud-init/
     ├── meta-data.yml          # Métadonnées d'instance (Hostname, Instance ID)
 
+
+Durcissement SSH : L'authentification par mot de passe et l'accès SSH en Root sont désactivés au profit d'une politique stricte d'accès par paires de clés asymétriques.
+    ├── network-config.yml     # Configuration réseau des interfaces
+    └── user-data.yml          # Clés SSH, utilisateurs et paquets de base initiaux
+```
+---
 🚀 Pipeline de Déploiement
 Étape 1 : Provisionnement avec OpenTofu
 OpenTofu clone les templates de machines virtuelles directement sur Proxmox et leur injecte les configurations réseau et les utilisateurs initiaux définis dans le dossier cloud-init/.
@@ -59,6 +65,3 @@ bastion_access.yml (Isolation réseau) : Applique le rôle bastion_access. Il mo
 🔒 Focus Sécurité
 nftables par défaut : Bloque tout flux entrant injustifié (Default DROP). Seuls le trafic local (lo), le Ping (ICMP), le SSH (22) et les flux de supervision de l'agent Zabbix (10050) restreints à l'IP du serveur Zabbix sont tolérés.
 
-Durcissement SSH : L'authentification par mot de passe et l'accès SSH en Root sont désactivés au profit d'une politique stricte d'accès par paires de clés asymétriques.
-    ├── network-config.yml     # Configuration réseau des interfaces
-    └── user-data.yml          # Clés SSH, utilisateurs et paquets de base initiaux
