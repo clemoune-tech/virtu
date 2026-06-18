@@ -7,7 +7,7 @@
     # ── VARIABLES INFRASTRUCTURE ─────────────────────────────────────────────
     ip_web: "192.168.10.51"       # À remplacer par l'IP de ton serveur Web
     ip_db: "192.168.10.52"        # À remplacer par l'IP de ton serveur de Base de Données
-    port_db: 5432                 # Port de ta DB (ex: 5432 PostgreSQL, 3306 MySQL)
+    port_db: 3306                 # Port de ta DB (ex: 5432 PostgreSQL, 3306 MySQL)
     ip_zabbix_server: "192.168.10.51" # L'IP de ton serveur Zabbix distant
 
     # ── VOS COMPTES ADMINISTRATEURS (CLÉS SSH) ───────────────────────────────
