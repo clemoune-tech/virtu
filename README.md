@@ -1,61 +1,40 @@
-# Infra Workshop - Proxmox / OpenTofu / Cloud-init / Ansible
+# Virtu — Infrastructure-as-Code & Automatisation Multi-VMs
 
-Ce dépôt contient la chaîne d’automatisation utilisée pour reconstruire une VM source sur Proxmox, l’initialiser avec cloud-init, puis appliquer un socle commun avec Ansible.
+Ce dépôt regroupe l'ensemble des configurations nécessaires au provisionnement automatique, à la sécurisation réseau et à la gestion de configuration d'une infrastructure virtuelle (Proxmox / KVM). 
 
-## Objectif
+Le projet combine **OpenTofu** pour l'orchestration des machines virtuelles, **Cloud-Init** pour le pré-provisionnement, et **Ansible** pour le durcissement système, la sécurité pare-feu et la supervision.
 
-L’objectif du workshop est de :
-- préparer une VM source propre sur Proxmox ;
-- la rendre reproductible via OpenTofu ;
-- appliquer l’identité initiale via cloud-init ;
-- compléter la configuration avec Ansible ;
-- préparer ensuite la conversion en template et le déploiement de VMs finales.
+---
 
-## Arborescence
+## 🛠️ Stack Technique & Architecture
 
-- `opentofu/` : provisioning de la VM dans Proxmox.
-- `cloud-init/` : identité initiale, utilisateur, SSH, réseau.
-- `ansible/` : socle commun, durcissement et configuration système.
-- `docs/` : documentation technique du projet.
+* **Orchestration (IaC) :** `OpenTofu` (provider Proxmox Telmate)
+* **Initialisation OS :** `Cloud-Init` (Socle minimal de paquets : vim, curl, sudo, nftables, fail2ban, rsync)
+* **Gestion de Configuration :** `Ansible` (Playbooks modulaires orchestrés par un fichier maître)
 
-## Ordre d’exécution
+---
 
-1. Déployer la VM avec OpenTofu.
-2. Laisser cloud-init s’exécuter au premier démarrage.
-3. Vérifier l’accès SSH.
-4. Appliquer le socle avec Ansible.
+## 📁 Structure du Dépôt
 
-## Paquets déjà présents sur la VM source
-
-La VM source contient déjà :
-- `python`
-- `qemu-guest-agent`
-- `cloud-init`
-- `openssh-server`
-
-## Réseau
-
-Le plan d’adressage utilisé dans le lab est :
-- réseau : `192.168.10.0/24`
-- passerelle : à adapter selon l’infrastructure
-- IP de la VM source : à adapter selon le plan retenu
-
-## Utilisation
-
-### OpenTofu
-```bash
-cd opentofu
-tofu init
-tofu plan
-tofu apply
-```
-
-### Ansible
-```bash
-cd ../ansible
-ansible-playbook -i inventory/hosts.yml playbooks/socle.yml
-```
-
-## Documentation
-
-La documentation technique complète se trouve dans `docs/documentation-technique.md`.
+```text
+virtu/
+├── ansibles/
+│   ├── inventory/
+│   │   └── hosts.yml          # Inventaire des cibles (Bastion, Web, DB...)
+│   ├── playbooks/
+│   │   ├── site.yml           # Playbook MAÎTRE ordonnançant le déploiement
+│   │   ├── socle.yml          # Configuration de base pour toutes les VMs
+│   │   ├── bastion.yml        # Configuration et outils d'administration du Bastion
+│   │   ├── web.yml            # Rôle et configuration du serveur Web
+│   │   └── bastion_access.yml # Isolation réseau SSH (Web & DB uniquement via Bastion)
+│   ├── roles/
+│   │   └── socle_commun/      # Tâches communes (Zabbix 7.0, Timezone, Services)
+│   └── ansible.cfg            # Paramètres globaux d'Ansible
+├── cloud-init/
+│   ├── meta-data.yml          # Métadonnées d'instance (Hostname, IDs)
+│   ├── network-config.yml     # Configuration réseau des interfaces
+│   └── user-data.yml          # Paquets de base, clés SSH et utilisateurs initiaux
+└── opentofu/
+    ├── main.tf & VMs.tf       # Définition des ressources et clones Proxmox
+    ├── providers.tf           # Configuration du provider Telmate Proxmox
+    └── secret.tfvars          # Variables d'authentification chiffrées/privées
