@@ -43,30 +43,38 @@ Durcissement SSH : L'authentification par mot de passe et l'accès SSH en Root s
     └── user-data.yml          # Clés SSH, utilisateurs et paquets de base initiaux
 ```
 ---
-🚀 Pipeline de Déploiement
+🧱 Étape 1 : Le Provisionnement avec OpenTofu (et Cloud-Init)
+Il faut impérativement commencer par OpenTofu. C'est lui qui va créer l'existence matérielle de tes machines virtuelles (Bastion, Web, DB, Zabbix) sur ton hyperviseur Proxmox.
 
-Étape 1 : Provisionnement avec OpenTofu
-OpenTofu clone les templates de machines virtuelles directement sur Proxmox et leur injecte les configurations réseau et les utilisateurs initiaux définis dans le dossier cloud-init/.
+Pendant qu'OpenTofu crée les VMs, il va automatiquement injecter tes fichiers Cloud-Init (user-data.yml, meta-data.yml, network-config.yml) dans les machines.
+C'est donc à ce moment-là, grâce à OpenTofu et Cloud-Init, que tes VMs reçoivent leur premier niveau de configuration :
 
+Leurs adresses IP et configurations réseau.
+
+La création de l'utilisateur initial et de sa clé SSH.
+
+L'installation automatique des tout premiers paquets de base (comme fail2ban, nftables, rsync, vim, curl).
+
+La commande pour lancer OpenTofu :
+Place-toi dans ton dossier opentofu et exécute :
+
+Bash
 cd opentofu
 tofu init
 tofu apply -var-file="secret.tfvars"
+(Tu devras valider en tapant yes lorsque OpenTofu te le demandera).
 
-Étape 2 : Gestion de configuration avec Ansible (site.yml)
-Une fois les machines virtuelles démarrées, le playbook maître site.yml orchestre la configuration complète de l'infrastructure en suivant l'ordre logique suivant :
+🚀 Étape 2 : La Configuration Logicielle et Sécurité avec Ansible
+Une fois qu'OpenTofu a terminé son travail et que toutes tes machines virtuelles ont fini de démarrer (compte environ 1 à 2 minutes pour que le Cloud-Init initial soit complètement finalisé à l'intérieur des VMs), tu peux passer à Ansible.
 
-- socle.yml (Toutes les VMs) : Applique le rôle socle_commun. Il met à jour les dépôts, configure la Timezone (Europe/Paris), installe l'agent Zabbix 7.0 relié au serveur central, et applique une politique nftables par défaut ultra-stricte (Default DROP Input).
+Ansible va se connecter sur les VMs existantes pour installer Zabbix, configurer Nginx, durcir le SSH du bastion, mettre en place tes règles nftables personnalisées et tester tes accès.
 
-- bastion.yml (Le Bastion) : Applique le rôle bastion. Il sécurise l'accès SSH, crée les comptes utilisateurs pour les administrateurs (groupe sysadmins), déploie leurs clés SSH et installe les outils d'administration et de diagnostic indispensables (tmux, nmap, nc, dig, htop, git). Il valide ensuite la connectivité vers le Web, la DB et le serveur Zabbix.
+La commande pour lancer Ansible :
+Place-toi dans ton dossier ansible et exécute le playbook maître site.yml (qui appelle tous les autres dans le bon ordre) :
 
-- web.yml (Serveur Web) : Applique le rôle nginx pour installer, configurer et déployer les templates du site ou de l'application Web (index.html.j2).
-
-- bastion_access.yml (Isolation réseau) : Applique le rôle bastion_access. Il modifie la configuration SSH de l'infrastructure (web, db) pour s'assurer que seul le Bastion soit techniquement capable d'ouvrir des sessions d'administration SSH sur ces serveurs.
-
-🔒 Focus Sécurité
-nftables par défaut : Bloque tout flux entrant injustifié (Default DROP). Seuls le trafic local (lo), le Ping (ICMP), le SSH (22) et les flux de supervision de l'agent Zabbix (10050) restreints à l'IP du serveur Zabbix sont tolérés.
-
-Durcissement SSH : L'authentification par mot de passe et l'accès SSH en Root sont désactivés au profit d'une politique stricte d'accès par paires de clés asymétriques.
+Bash
+cd ../ansible
+ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 
 🔒 Focus Sécurité
 nftables par défaut : Bloque tout flux entrant injustifié (Default DROP). Seuls le trafic local (lo), le Ping (ICMP), le SSH (22) et les flux de supervision de l'agent Zabbix (10050) restreints à l'IP du serveur Zabbix sont tolérés.
