@@ -16,3 +16,6 @@
 
 # ── Étape 4 : Restriction d'accès SSH sur web et db ───────────────────────
 - import_playbook: bastion_access.yml
+
+# ── Étape 5 : Configuration du serveur de base de données ─────────────────
+- import_playbook: db.yml 

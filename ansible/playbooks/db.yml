@@ -1,0 +1,12 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Playbook : Configuration du serveur de base de données
+# Cible    : VM db uniquement
+# Rôles    : mariadb
+# Usage    : ansible-playbook playbooks/db.yml
+# ─────────────────────────────────────────────────────────────
+- name: Configurer le serveur de base de données
+  hosts: db
+  become: true
+  roles:
+    - mariadb

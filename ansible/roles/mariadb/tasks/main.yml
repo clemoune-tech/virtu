@@ -1,0 +1,130 @@
+---
+# ==========================================================================
+# PARTIE 1 : INSTALLATION MARIADB
+# ==========================================================================
+- name: "[DB] Installer MariaDB et dépendances Python"
+  apt:
+    name:
+      - mariadb-server
+      - python3-pymysql
+    state: present
+    update_cache: true
+
+- name: "[DB] Démarrer et activer MariaDB"
+  service:
+    name: mariadb
+    state: started
+    enabled: true
+
+# ==========================================================================
+# PARTIE 2 : SÉCURISATION DE MARIADB
+# ==========================================================================
+- name: "[DB] Supprimer les utilisateurs anonymes"
+  community.mysql.mysql_user:
+    name: ''
+    host_all: true
+    state: absent
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: "[DB] Supprimer la base de données de test"
+  community.mysql.mysql_db:
+    name: test
+    state: absent
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: "[DB] Désactiver l'accès root à distance"
+  community.mysql.mysql_user:
+    name: root
+    host: "{{ item }}"
+    state: absent
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  loop:
+    - "{{ ansible_hostname }}"
+    - "127.0.0.1"
+    - "::1"
+    - "%"
+  ignore_errors: true
+
+# ==========================================================================
+# PARTIE 3 : CRÉATION DE LA BASE DE DONNÉES ET UTILISATEUR
+# ==========================================================================
+- name: "[DB] Créer la base de données applicative"
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    encoding: utf8mb4
+    collation: utf8mb4_general_ci
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: "[DB] Créer l'utilisateur applicatif"
+  community.mysql.mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    priv: "{{ db_name }}.*:ALL"
+    host: "{{ db_web_ip }}"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+# ==========================================================================
+# PARTIE 4 : CONFIGURATION RÉSEAU MARIADB
+# ==========================================================================
+- name: "[DB] Restreindre MariaDB à l'interface locale"
+  lineinfile:
+    path: /etc/mysql/mariadb.conf.d/50-server.cnf
+    regexp: '^bind-address'
+    line: 'bind-address = 0.0.0.0'
+  notify: Restart mariadb
+
+# ==========================================================================
+# PARTIE 5 : NFTABLES — RÈGLES SPÉCIFIQUES DB
+# ==========================================================================
+- name: "[DB] Configurer nftables pour le serveur DB"
+  copy:
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0750'
+    content: |
+      #!/usr/sbin/nft -f
+      flush ruleset
+      table inet filter {
+          chain input {
+              type filter hook input priority filter; policy drop;
+              # Loopback
+              iif "lo" accept
+              # Trafic établi
+              ct state established,related accept
+              # Trafic invalide
+              ct state invalid drop
+              # ICMP
+              ip protocol icmp accept
+              ip6 nexthdr ipv6-icmp accept
+              # SSH — depuis le bastion uniquement
+              ip saddr 192.168.10.50 tcp dport 22 accept
+              # MySQL — depuis le serveur web uniquement
+              ip saddr {{ db_web_ip }} tcp dport 3306 accept
+              # Zabbix agent
+              ip saddr {{ ip_zabbix_server }} tcp dport 10050 accept
+          }
+          chain forward {
+              type filter hook forward priority filter; policy drop;
+          }
+          chain output {
+              type filter hook output priority filter; policy accept;
+          }
+      }
+  notify: Restart nftables
+
+- name: "[DB] Appliquer les règles nftables"
+  service:
+    name: nftables
+    state: restarted
+
+# ==========================================================================
+# PARTIE 6 : VÉRIFICATION
+# ==========================================================================
+- name: "[DB] Vérifier que MariaDB écoute sur le port 3306"
+  wait_for:
+    host: "127.0.0.1"
+    port: 3306
+    timeout: 10

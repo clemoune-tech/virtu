@@ -1,0 +1,10 @@
+---
+- name: Restart mariadb
+  service:
+    name: mariadb
+    state: restarted
+
+- name: Restart nftables
+  service:
+    name: nftables
+    state: restarted

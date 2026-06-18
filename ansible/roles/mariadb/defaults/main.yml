@@ -1,0 +1,8 @@
+---
+# ── Variables MariaDB ─────────────────────────────────────────
+# Modifier ces valeurs selon ton environnement
+db_name:     "global_db"
+db_user:     "ladmin"
+db_password: "ladmin"
+db_web_ip:   "192.168.10.51"     # Seule IP autorisée à se connecter
+db_root_password: "ladmin"

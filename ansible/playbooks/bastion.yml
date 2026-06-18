@@ -10,7 +10,7 @@
   vars:
     bastion_ip_web:        "192.168.10.51"
     bastion_ip_db:         "192.168.10.52"
-    bastion_port_db:       5432
+    bastion_port_db:       3306
     bastion_zabbix_server: "192.168.10.51"
     bastion_admins:
       - name: "ladmin"
