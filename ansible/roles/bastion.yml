@@ -156,12 +156,12 @@
     # ==========================================================================
     # PARTIE 5 : VÉRIFICATION DES ACCÈS (WEB, DB, VERS LE SERVEUR ZABBIX)
     # ==========================================================================
-    - name: [RÉSEAU] Vérifier l'accès au serveur Web (Port 443)
+    - name: [RÉSEAU] Vérifier l'accès au serveur Web (Port 80)
       wait_for:
         host: "{{ ip_web }}"
         port: 80
         timeout: 5
-      msg: "Le Bastion ne parvient pas à joindre le serveur Web sur le port 443"
+      msg: "Le Bastion ne parvient pas à joindre le serveur Web sur le port 80"
 
     - name: [RÉSEAU] Vérifier l'accès à la Base de Données
       wait_for:
@@ -175,4 +175,4 @@
         host: "{{ ip_zabbix_server }}"
         port: 8080
         timeout: 5
-      msg: "Le Bastion ne parvient pas à contacter le serveur Zabbix central sur le port 10051"
+      msg: "Le Bastion ne parvient pas à contacter le serveur Zabbix central sur le port 8080"
