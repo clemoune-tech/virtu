@@ -55,12 +55,13 @@
     - "'already exists' not in schema_result.stderr"
   notify: Restart zabbix-server
   
-- name: Créer le fichier de marquage d'initialisation
-  file:
-    path: /var/lib/zabbix/.db_initialized
-    state: touch
-    mode: '0600'
-  when: not db_init.stat.exists
+- name: Marquer la base de données comme initialisée
+  shell: |
+    mkdir -p /var/lib/zabbix
+    touch /var/lib/zabbix/.db_initialized
+    chmod 600 /var/lib/zabbix/.db_initialized
+  args:
+    creates: /var/lib/zabbix/.db_initialized
 
 - name: Créer le fichier de marquage d'initialisation
   file:
