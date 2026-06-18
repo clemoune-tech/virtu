@@ -48,9 +48,9 @@ Durcissement SSH : L'authentification par mot de passe et l'accès SSH en Root s
 OpenTofu clone les templates de machines virtuelles directement sur Proxmox et leur injecte les configurations réseau et les utilisateurs initiaux définis dans le dossier cloud-init/.
 
 Bash
-cd opentofu
-tofu init
-tofu apply -var-file="secret.tfvars"
+    cd opentofu
+    tofu init
+    tofu apply -var-file="secret.tfvars"
 
 Étape 2 : Gestion de configuration avec Ansible (site.yml)
 Une fois les machines virtuelles démarrées, le playbook maître site.yml orchestre la configuration complète de l'infrastructure en suivant l'ordre logique suivant :
