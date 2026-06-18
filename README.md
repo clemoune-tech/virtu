@@ -51,16 +51,17 @@ Bash
 cd opentofu
 tofu init
 tofu apply -var-file="secret.tfvars"
+
 Étape 2 : Gestion de configuration avec Ansible (site.yml)
 Une fois les machines virtuelles démarrées, le playbook maître site.yml orchestre la configuration complète de l'infrastructure en suivant l'ordre logique suivant :
 
-socle.yml (Toutes les VMs) : Applique le rôle socle_commun. Il met à jour les dépôts, configure la Timezone (Europe/Paris), installe l'agent Zabbix 7.0 relié au serveur central, et applique une politique nftables par défaut ultra-stricte (Default DROP Input).
+- socle.yml (Toutes les VMs) : Applique le rôle socle_commun. Il met à jour les dépôts, configure la Timezone (Europe/Paris), installe l'agent Zabbix 7.0 relié au serveur central, et applique une politique nftables par défaut ultra-stricte (Default DROP Input).
 
-bastion.yml (Le Bastion) : Applique le rôle bastion. Il sécurise l'accès SSH, crée les comptes utilisateurs pour les administrateurs (groupe sysadmins), déploie leurs clés SSH et installe les outils d'administration et de diagnostic indispensables (tmux, nmap, nc, dig, htop, git). Il valide ensuite la connectivité vers le Web, la DB et le serveur Zabbix.
+- bastion.yml (Le Bastion) : Applique le rôle bastion. Il sécurise l'accès SSH, crée les comptes utilisateurs pour les administrateurs (groupe sysadmins), déploie leurs clés SSH et installe les outils d'administration et de diagnostic indispensables (tmux, nmap, nc, dig, htop, git). Il valide ensuite la connectivité vers le Web, la DB et le serveur Zabbix.
 
-web.yml (Serveur Web) : Applique le rôle nginx pour installer, configurer et déployer les templates du site ou de l'application Web (index.html.j2).
+- web.yml (Serveur Web) : Applique le rôle nginx pour installer, configurer et déployer les templates du site ou de l'application Web (index.html.j2).
 
-bastion_access.yml (Isolation réseau) : Applique le rôle bastion_access. Il modifie la configuration SSH de l'infrastructure (web, db) pour s'assurer que seul le Bastion soit techniquement capable d'ouvrir des sessions d'administration SSH sur ces serveurs.
+- bastion_access.yml (Isolation réseau) : Applique le rôle bastion_access. Il modifie la configuration SSH de l'infrastructure (web, db) pour s'assurer que seul le Bastion soit techniquement capable d'ouvrir des sessions d'administration SSH sur ces serveurs.
 
 🔒 Focus Sécurité
 nftables par défaut : Bloque tout flux entrant injustifié (Default DROP). Seuls le trafic local (lo), le Ping (ICMP), le SSH (22) et les flux de supervision de l'agent Zabbix (10050) restreints à l'IP du serveur Zabbix sont tolérés.
