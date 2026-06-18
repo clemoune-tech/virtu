@@ -44,6 +44,7 @@ Durcissement SSH : L'authentification par mot de passe et l'accès SSH en Root s
 ```
 ---
 🚀 Pipeline de Déploiement
+
 Étape 1 : Provisionnement avec OpenTofu
 OpenTofu clone les templates de machines virtuelles directement sur Proxmox et leur injecte les configurations réseau et les utilisateurs initiaux définis dans le dossier cloud-init/.
 
