@@ -1,0 +1,34 @@
+---
+# ==========================================================================
+# Restriction SSH — Accès depuis le bastion uniquement
+# ==========================================================================
+
+- name: "[ACCESS] Créer l'utilisateur ladmin si absent"
+  user:
+    name: ladmin
+    groups: sudo
+    shell: /bin/bash
+    state: present
+
+- name: "[ACCESS] Déployer la clé SSH du bastion"
+  ansible.posix.authorized_key:
+    user: ladmin
+    state: present
+    key: "{{ lookup('file', '/tmp/bastion_id_ed25519.pub') }}"
+
+- name: "[SÉCURITÉ] Autoriser SSH uniquement depuis le bastion"
+  lineinfile:
+    path: /etc/ssh/sshd_config.d/99-bastion.conf
+    line: "AllowUsers ladmin@192.168.10.50"
+    create: true
+    mode: '0644'
+  notify: Restart ssh
+
+- name: "[SÉCURITÉ] Désactiver mot de passe sur web et db"
+  lineinfile:
+    path: /etc/ssh/sshd_config.d/99-bastion.conf
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    create: true
+    mode: '0644'
+  notify: Restart ssh

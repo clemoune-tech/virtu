@@ -1,0 +1,15 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Playbook : Déployer l'accès bastion vers les cibles
+# Cible    : web et db
+# Usage    : ansible-playbook -i inventory/hosts.yml playbooks/bastion_access.yml
+# ─────────────────────────────────────────────────────────────
+- name: Déployer l'accès bastion vers les cibles
+  hosts: web:db
+  become: true
+  vars:
+    bastion_admins:
+      - name: "ladmin"
+        ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDaiBR8pgK9Dv7bGMCOIzdr6BiRc3I2SkGYjqg6sXGxq firas@infra-workshop"
+  roles:
+    - bastion_access

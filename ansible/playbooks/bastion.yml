@@ -1,0 +1,19 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Playbook : Configuration complète du Bastion
+# Cible    : VM bastion uniquement
+# Usage    : ansible-playbook -i inventory/hosts.yml playbooks/bastion.yml
+# ─────────────────────────────────────────────────────────────
+- name: Configuration complète du Bastion
+  hosts: bastion
+  become: true
+  vars:
+    bastion_ip_web:        "192.168.10.51"
+    bastion_ip_db:         "192.168.10.52"
+    bastion_port_db:       5432
+    bastion_zabbix_server: "192.168.10.51"
+    bastion_admins:
+      - name: "ladmin"
+        ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDaiBR8pgK9Dv7bGMCOIzdr6BiRc3I2SkGYjqg6sXGxq firas@infra-workshop"
+  roles:
+    - bastion

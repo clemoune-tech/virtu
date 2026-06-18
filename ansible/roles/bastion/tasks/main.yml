@@ -1,0 +1,161 @@
+---
+# ==========================================================================
+# PARTIE 1 : CONFIGURATION ZABBIX AGENT (installé via cloud-init)
+# ==========================================================================
+- name: "[ZABBIX] Vérifier que l'agent Zabbix est installé"
+  stat:
+    path: /etc/zabbix/zabbix_agentd.conf
+  register: zabbix_conf
+  failed_when: not zabbix_conf.stat.exists
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: "[SOCLE] Configurer le serveur Zabbix distant (passif)"
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Server='
+    line: "Server={{ bastion_zabbix_server }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify: Restart zabbix-agent
+
+- name: "[SOCLE] Configurer le serveur Zabbix distant (actif)"
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^ServerActive='
+    line: "ServerActive={{ bastion_zabbix_server }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify: Restart zabbix-agent
+
+- name: "[SOCLE] Configurer le hostname de l'agent Zabbix"
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Hostname='
+    line: 'Hostname={{ inventory_hostname }}'
+  notify: Restart zabbix-agent
+
+- name: "[SOCLE] Configurer le fuseau horaire"
+  timezone:
+    name: Europe/Paris
+
+- name: "[SOCLE] Activer et démarrer l'agent Zabbix"
+  service:
+    name: zabbix-agent
+    state: started
+    enabled: true
+
+# ==========================================================================
+# PARTIE 2 : CONFIGURATION & SÉCURISATION SSH DU BASTION (OPTIONNEL)
+# ==========================================================================
+# Décommentez ces tâches si vous souhaitez appliquer les restrictions SSH
+# Attention : cela peut bloquer l'accès en cas de mauvaise clé SSH !
+
+# - name: [SSH] Forcer l'authentification par CLÉ UNIQUEMENT (Pas de mot de passe)
+#   lineinfile:
+#     path: /etc/ssh/sshd_config.d/99-workshop.conf
+#     line: 'PasswordAuthentication no'
+#     create: true
+#     mode: '0644'
+#   notify: Restart ssh
+
+# - name: [SSH] Interdire complètement l'accès Root sur le Bastion
+#   lineinfile:
+#     path: /etc/ssh/sshd_config.d/99-workshop.conf
+#     regexp: '^#?PermitRootLogin'
+#     line: 'PermitRootLogin no'
+#     create: true
+#     mode: '0644'
+#   notify: Restart ssh
+
+# ==========================================================================
+# PARTIE 3 : VÉRIFICATION DES COMPTES ET DES CLÉS
+# ==========================================================================
+- name: "[COMPTES] Créer le groupe des administrateurs (sysadmins)"
+  group:
+    name: sysadmins
+    state: present
+
+- name: "[COMPTES] Créer les comptes utilisateurs des administrateurs"
+  user:
+    name: "{{ item.name }}"
+    group: sysadmins
+    shell: /bin/bash
+    state: present
+  loop: "{{ bastion_admins }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: "[COMPTES] Déployer les clés SSH pour les administrateurs"
+  authorized_key:
+    user: "{{ item.name }}"
+    state: present
+    key: "{{ item.ssh_key }}"
+  loop: "{{ bastion_admins }}"
+
+# ==========================================================================
+# PARTIE 4 : OUTILS D'ADMINISTRATION COMPLÉMENTAIRES
+# ==========================================================================
+- name: "[OUTILS] Installer les outils d'administration et de diagnostic"
+  apt:
+    name:
+      - tmux             # Persistance de session
+      - nmap             # Scan de ports réseau
+      - netcat-openbsd   # Test de connectivité (commande nc)
+      - dnsutils         # Résolution de noms (commande dig)
+      - htop             # Monitoring des ressources locales
+      - git              # Gestion des scripts
+    state: present
+    update_cache: true
+
+# ==========================================================================
+# PARTIE 5 : VÉRIFICATION DES ACCÈS (WEB, DB, VERS LE SERVEUR ZABBIX)
+# ==========================================================================
+- name: "[RÉSEAU] Vérifier l'accès au serveur Web (Port HTTP)"
+  wait_for:
+    host: "{{ bastion_ip_web }}"
+    port: 80
+    timeout: 5
+
+- name: "[RÉSEAU] Vérifier l'accès à la Base de Données"
+  wait_for:
+    host: "{{ bastion_ip_db }}"
+    port: "{{ bastion_port_db }}"
+    timeout: 5
+  ignore_errors: true 
+
+- name: "[RÉSEAU] Vérifier que le Bastion peut joindre le serveur Zabbix distant (Port 8080)"
+  wait_for:
+    host: "{{ bastion_zabbix_server }}"
+    port: 8080
+    timeout: 5
+    # ==========================================================================
+# PARTIE 6 : CLÉ SSH DU BASTION (pour accéder à web et db)
+# ==========================================================================
+- name: "[BASTION] Générer la clé SSH du bastion"
+  openssh_keypair:
+    path: /home/ladmin/.ssh/id_ed25519
+    type: ed25519
+    owner: ladmin
+    group: ladmin
+    mode: '0600'
+  register: bastion_keypair
+
+- name: "[BASTION] Récupérer la clé publique du bastion"
+  fetch:
+    src: /home/ladmin/.ssh/id_ed25519.pub
+    dest: /tmp/bastion_id_ed25519.pub
+    flat: true
+
+# ==========================================================================
+# PARTIE 6 : CLÉ SSH DU BASTION (pour accéder à web et db)
+# ==========================================================================
+- name: "[BASTION] Générer la clé SSH du bastion"
+  openssh_keypair:
+    path: /home/ladmin/.ssh/id_ed25519
+    type: ed25519
+    owner: ladmin
+    group: ladmin
+    mode: '0600'
+
+- name: "[BASTION] Récupérer la clé publique du bastion"
+  fetch:
+    src: /home/ladmin/.ssh/id_ed25519.pub
+    dest: /tmp/bastion_id_ed25519.pub
+    flat: true
