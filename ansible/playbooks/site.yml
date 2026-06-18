@@ -1,0 +1,18 @@
+---
+# ==========================================================================
+# PLAYBOOK MAÎTRE — Déploiement complet de l'infrastructure
+# Usage : ansible-playbook playbooks/site.yml
+# Ordre : socle → bastion → web → bastion_access
+# ==========================================================================
+
+# ── Étape 1 : Socle commun sur toutes les VMs ─────────────────────────────
+- import_playbook: socle.yml
+
+# ── Étape 2 : Configuration spécifique du bastion ─────────────────────────
+- import_playbook: bastion.yml
+
+# ── Étape 3 : Configuration du serveur web ────────────────────────────────
+- import_playbook: web.yml
+
+# ── Étape 4 : Restriction d'accès SSH sur web et db ───────────────────────
+- import_playbook: bastion_access.yml

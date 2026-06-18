@@ -8,3 +8,8 @@
   service:
     name: zabbix-agent
     state: restarted
+
+- name: Restart nftables
+  service:
+    name: nftables
+    state: restarted    
