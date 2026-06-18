@@ -2,7 +2,7 @@
 
 Ce dépôt regroupe l'ensemble des configurations nécessaires au provisionnement automatique, à la sécurisation réseau et à la gestion de configuration d'une infrastructure virtuelle (Proxmox / KVM). 
 
-Le projet combine **OpenTofu** pour l'orchestration des machines virtuelles, **Cloud-Init** pour le pré-provisionnement, et **Ansible** pour le durcissement système, la sécurité pare-feu et la supervision.
+Le projet combine **OpenTofu** pour l'orchestration des machines virtuelles, **Cloud-Init** pour le pré-provisionnement, et **Ansible** pour le déploiement applicatif, la sécurité pare-feu et la supervision.
 
 ---
 
@@ -14,27 +14,27 @@ Le projet combine **OpenTofu** pour l'orchestration des machines virtuelles, **C
 
 ---
 
-## 📁 Structure du Dépôt
+## 📁 Structure Réelle du Dépôt
 
 ```text
 virtu/
-├── ansibles/
+├── ansible/
 │   ├── inventory/
-│   │   └── hosts.yml          # Inventaire des cibles (Bastion, Web, DB...)
+│   │   └── hosts.yml          # Inventaire des cibles (Bastion, Web, DB, Zabbix...)
 │   ├── playbooks/
-│   │   ├── site.yml           # Playbook MAÎTRE ordonnançant le déploiement
-│   │   ├── socle.yml          # Configuration de base pour toutes les VMs
-│   │   ├── bastion.yml        # Configuration et outils d'administration du Bastion
-│   │   ├── web.yml            # Rôle et configuration du serveur Web
-│   │   └── bastion_access.yml # Isolation réseau SSH (Web & DB uniquement via Bastion)
+│   │   ├── site.yml           # Playbook MAÎTRE ordonnançant tout le déploiement
+│   │   ├── socle.yml          # Applique le socle commun à toutes les machines
+│   │   ├── bastion.yml        # Déploiement spécifique du bastion d'administration
+│   │   ├── web.yml            # Déploiement de la stack Web
+│   │   └── bastion_access.yml # Isolation et restriction des accès SSH
 │   ├── roles/
-│   │   └── socle_commun/      # Tâches communes (Zabbix 7.0, Timezone, Services)
+│   │   ├── bastion/           # Outils d'administration & configuration SSH du bastion
+│   │   ├── bastion_access/    # Verrouillage des accès SSH sur l'infra cible
+│   │   ├── nginx/             # Installation de Nginx et gestion des templates web
+│   │   ├── socle_commun/      # Configuration globale (Zabbix Agent 7.0, nftables, etc.)
+│   │   └── zabbix_server/     # Configuration dédiée au serveur de supervision
 │   └── ansible.cfg            # Paramètres globaux d'Ansible
-├── cloud-init/
-│   ├── meta-data.yml          # Métadonnées d'instance (Hostname, IDs)
-│   ├── network-config.yml     # Configuration réseau des interfaces
-│   └── user-data.yml          # Paquets de base, clés SSH et utilisateurs initiaux
-└── opentofu/
-    ├── main.tf & VMs.tf       # Définition des ressources et clones Proxmox
-    ├── providers.tf           # Configuration du provider Telmate Proxmox
-    └── secret.tfvars          # Variables d'authentification chiffrées/privées
+└── cloud-init/
+    ├── meta-data.yml          # Métadonnées d'instance (Hostname, Instance ID)
+    ├── network-config.yml     # Configuration réseau des interfaces
+    └── user-data.yml          # Clés SSH, utilisateurs et paquets de base initiaux
